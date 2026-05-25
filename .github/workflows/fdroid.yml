@@ -14,7 +14,6 @@ jobs:
           sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
           sudo apt install fdroidserver git unzip wget -y
-          cd ~
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml
@@ -47,4 +46,4 @@ jobs:
           export ANDROID_HOME="${ANDROID_SDK_ROOT}"
           export PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
           cd ~/fdroiddata
-          fdroid build "org.mozilla.$PACKAGE_NAME:$VERCODE"
+          fdroid build --verbose --server "org.mozilla.$PACKAGE_NAME:$VERCODE"

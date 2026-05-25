@@ -51,3 +51,9 @@ jobs:
           export PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
           cd ~/fdroiddata
           fdroid build --verbose "org.mozilla.$PACKAGE_NAME:$VERCODE"
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: fennec_fork_apks
+        path: |
+          ~/fdroiddata/srclib/MozFennec/obj/gradle/build/mobile/android/fenix/app/outputs/apk/release/app-*-release-unsigned.apk

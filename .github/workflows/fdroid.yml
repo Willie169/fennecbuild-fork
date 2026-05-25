@@ -17,6 +17,25 @@ jobs:
           sudo apt-get install -y openjdk-17-jdk-headless
           sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
           sudo apt-get install -y cmake make m4 pkg-config python-is-python3 python3-venv tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
+          mkdir -p ~/.local/bin
+          cd ~/.local/bin
+          cat > clang <<'EOF'
+          #!/bin/bash
+          SOURCE_DATE_EPOCH=0 /usr/bin/clang "$@"
+          EOF
+          cat > cmake <<'EOF'
+          #!/bin/bash
+          SOURCE_DATE_EPOCH=0 /usr/bin/cmake "$@"
+          EOF
+          cat > gmake <<'EOF'
+          #!/bin/bash
+          SOURCE_DATE_EPOCH=0 /usr/bin/gmake "$@"
+          EOF
+          cat > ninja <<'EOF'
+          #!/bin/bash
+          SOURCE_DATE_EPOCH=0 /usr/bin/ninja "$@"
+          EOF
+          export PATH="${HOME}/.local/bin:${PATH}"
           cd ~
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
@@ -26,7 +45,7 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: export SOURCE_DATE_EPOCH=0 \&\& git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           cd ~

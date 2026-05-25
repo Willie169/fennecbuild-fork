@@ -1,0 +1,50 @@
+name: fdroid
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name:
+        run: |
+          export PACKAGE_NAME='fennec_aaa'
+          sudo add-apt-repository ppa:fdroid/fdroidserver -y
+          sudo apt update
+          sudo apt install fdroidserver git unzip wget -y
+          cd ~
+          git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
+          cd fdroiddata
+          rm config.yml
+          touch config.yml
+          cd metadata
+          export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
+          export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. ":!\*\.github\/\*" ":!\.git\/\*" \| xargs perl -pi -e "s\/fennec_fdroid\/\$1\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
+          mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
+          mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
+          cd ~
+          wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
+          export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }
+          count >= 2 {
+            if (match($0, /commandlinetools-linux-.*zip/)) {
+              print substr($0, RSTART, RLENGTH)
+              exit
+            }
+          }' studio.html)"
+          rm studio.html
+          wget --tries=100 --retry-connrefused --waitretry=5 "https://dl.google.com/android/repository/${CMDLINETOOLS}"
+          unzip "$CMDLINETOOLS"
+          mkdir -p ~/Android/Sdk/cmdline-tools/latest
+          mv cmdline-tools/* ~/Android/Sdk/cmdline-tools/latest
+          rm -r cmdline-tools
+          cd ~/Android/Sdk/cmdline-tools/latest/bin
+          echo y | ./sdkmanager "platform-tools" "ndk;${NDK}"
+          export ANDROID_SDK_ROOT="${HOME}/Android/Sdk"
+          export ANDROID_HOME="${ANDROID_SDK_ROOT}"
+          export PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+          cd ~/fdroiddata
+          fdroid build "org.mozilla.$PACKAGE_NAME:$VERCODE"

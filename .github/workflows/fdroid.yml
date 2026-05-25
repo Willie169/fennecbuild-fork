@@ -11,7 +11,6 @@ jobs:
       - name: Build app
         run: |
           export PACKAGE_NAME='fennec_aaa'
-          export SOURCE_DATE_EPOCH=0
           sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
           sudo apt install fdroidserver git unzip wget -y
@@ -27,7 +26,7 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: export SOURCE_DATE_EPOCH=0 \&\& git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           cd ~

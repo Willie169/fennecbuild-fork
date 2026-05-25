@@ -11,6 +11,7 @@ jobs:
       - name: Build app
         run: |
           export PACKAGE_NAME='fennec_aaa'
+          export SOURCE_DATE_EPOCH=0
           sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
           sudo apt install fdroidserver git unzip wget -y
@@ -56,4 +57,4 @@ jobs:
         with:
           name: fennec_fork_apks
           path: |
-            ~/fdroiddata/srclib/MozFennec/obj/gradle/build/mobile/android/fenix/app/outputs/apk/release/app-*-release-unsigned.apk
+            ~/fdroiddata/build/srclib/MozFennec/obj/gradle/build/mobile/android/fenix/app/outputs/apk/release/app-*-release-unsigned.apk

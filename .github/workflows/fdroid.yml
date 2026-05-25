@@ -25,7 +25,7 @@ jobs:
           cd metadata
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
-          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. ":!\*\.github\/\*" ":!\.git\/\*" \| xargs perl -pi -e "s\/fennec_fdroid\/\$1\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. ":!\*\.github\/\*" ":!\.git\/\*" \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"

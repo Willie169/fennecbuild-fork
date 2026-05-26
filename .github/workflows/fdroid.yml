@@ -11,23 +11,28 @@ jobs:
           export PACKAGE_NAME='fennec_aaa'
           sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
-          sudo apt install fdroidserver git unzip wget -y
+          sudo apt install fdroidserver git python-is-python3 python3-venv unzip wget -y
+          COMMON_PY=$(python3 -c "import fdroidserver.common; print(fdroidserver.common.__file__)")
+          sudo python3 - "$COMMON_PY" << 'EOF'
+          import sys
+          path = sys.argv[1]
+          with open(path, 'r') as f:
+              src = f.read()
+          old = "env['SOURCE_DATE_EPOCH'] = get_source_date_epoch(get_build_dir(app))"
+new = (
+              "_sde = get_source_date_epoch(get_build_dir(app))\n"
+              "        if _sde:\n"
+              "            env['SOURCE_DATE_EPOCH'] = _sde\n"
+              "        else:\n"
+              "            env.pop('SOURCE_DATE_EPOCH', 0)"
+          )
+          src = src.replace(old, new)
+          with open(path, 'w') as f:
+              f.write(src)
+          EOF
           sudo apt-get install -y openjdk-17-jdk-headless
           sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
-          sudo apt-get install -y cmake make m4 pkg-config python-is-python3 python3-venv tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
-          sudo tee /usr/local/bin/clang > /dev/null << 'EOF'
-          #!/bin/bash
-          SOURCE_DATE_EPOCH=0
-          exec /usr/bin/clang "$@"
-          EOF
-          sudo chmod +x /usr/local/bin/clang
-          sudo tee /usr/local/bin/clang++ > /dev/null << 'EOF'
-          #!/bin/bash
-          [ -z "$SOURCE_DATE_EPOCH" ] && unset SOURCE_DATE_EPOCH
-          exec /usr/bin/clang++ "$@"
-          EOF
-          sudo chmod +x /usr/local/bin/clang++
-          export PATH="/usr/local/bin:${PATH}"
+          sudo apt-get install -y cmake make m4 pkg-config tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
           cd ~
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata

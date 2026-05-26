@@ -19,7 +19,7 @@ jobs:
           with open(path, 'r') as f:
               src = f.read()
           old = "env['SOURCE_DATE_EPOCH'] = get_source_date_epoch(get_build_dir(app))"
-new = (
+          new = (
               "_sde = get_source_date_epoch(get_build_dir(app))\n"
               "        if _sde:\n"
               "            env['SOURCE_DATE_EPOCH'] = _sde\n"

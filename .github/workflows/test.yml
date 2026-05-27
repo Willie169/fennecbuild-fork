@@ -1,0 +1,52 @@
+name: fdroid
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build app
+        run: |
+          sudo add-apt-repository ppa:fdroid/fdroidserver -y
+          sudo apt update
+          sudo apt install fdroidserver git python-is-python3 python3-venv unzip wget -y
+          sudo apt-get install -y openjdk-17-jdk-headless
+          sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
+          sudo apt-get install -y cmake make m4 pkg-config tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
+          cd ~
+          git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
+          cd fdroiddata
+          rm config.yml
+          touch config.yml
+          cd metadata
+          export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
+          export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
+          cd ~
+          wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
+          export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }
+          count >= 2 {
+            if (match($0, /commandlinetools-linux-.*zip/)) {
+              print substr($0, RSTART, RLENGTH)
+              exit
+            }
+          }' studio.html)"
+          rm studio.html
+          wget --tries=100 --retry-connrefused --waitretry=5 "https://dl.google.com/android/repository/${CMDLINETOOLS}"
+          unzip "$CMDLINETOOLS"
+          mkdir -p ~/Android/Sdk/cmdline-tools/latest
+          mv cmdline-tools/* ~/Android/Sdk/cmdline-tools/latest
+          rm -r cmdline-tools
+          cd ~/Android/Sdk/cmdline-tools/latest/bin
+          echo y | ./sdkmanager "platform-tools" "ndk;${NDK}"
+          export ANDROID_SDK_ROOT="${HOME}/Android/Sdk"
+          export ANDROID_HOME="${ANDROID_SDK_ROOT}"
+          export PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+          cd ~/fdroiddata
+          fdroid build --verbose "org.mozilla.fennec_fdroid:$VERCODE"
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fennec_apks
+          path: |
+            ~/fdroiddata/build/srclib/MozFennec/obj/gradle/build/mobile/android/fenix/app/outputs/apk/release/app-*-release-unsigned.apk

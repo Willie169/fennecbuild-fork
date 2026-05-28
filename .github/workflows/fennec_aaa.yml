@@ -43,7 +43,7 @@ jobs:
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           git rm org.mozilla.fennec_fdroid.yml
-          git rm org.mozilla.fennec_fdroid
+          git rm -r org.mozilla.fennec_fdroid
           git add "org.mozilla.$PACKAGE_NAME.yml"
           git add "org.mozilla.$PACKAGE_NAME"
           git commit -m commit_message

@@ -9,12 +9,8 @@ jobs:
       - name: Build app
         run: |
           export PACKAGE_NAME='fennec_aaa'
-          sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
-          sudo apt install fdroidserver git python-is-python3 python3-venv unzip wget -y
-          sudo apt-get install -y openjdk-17-jdk-headless
-          sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
-          sudo apt-get install -y cmake make m4 pkg-config tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
+          sudo apt install git unzip wget -y
           cd ~
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
@@ -22,9 +18,10 @@ jobs:
           touch config.yml
           cd metadata
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
+          export COMMIT=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*commit:' | tail -1 | sed -E 's/.*commit:[[:space:]]*([^[:space:]]+).*/\1/')
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& git add \. \&\& git commit -m override_package_name \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git reset --hard \$COMMIT \&\& git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& git add \. \&\& git commit --amend -m override_package_name \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           cd ~
@@ -43,12 +40,9 @@ jobs:
           mv cmdline-tools/* ~/Android/Sdk/cmdline-tools/latest
           rm -r cmdline-tools
           cd ~/Android/Sdk/cmdline-tools/latest/bin
-          echo y | ./sdkmanager "platform-tools" "ndk;${NDK}"
-          export ANDROID_SDK_ROOT="${HOME}/Android/Sdk"
-          export ANDROID_HOME="${ANDROID_SDK_ROOT}"
-          export PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+          echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          fdroid build --verbose "org.mozilla.$PACKAGE_NAME:$VERCODE"
+          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "$PACKAGE_NAME:$VERCODE" -v
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

@@ -16,6 +16,9 @@ jobs:
           cd metadata
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
+          sudo apt update
+          export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
+          sudo bash <<< "$SUDO"
           cd ~
           wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
           export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }
@@ -34,7 +37,7 @@ jobs:
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "org.mozilla.fennec_fdroid:$VERCODE" -v --on-server
+          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "org.mozilla.fennec_fdroid:$VERCODE" -v
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

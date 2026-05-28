@@ -34,7 +34,7 @@ jobs:
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "org.mozilla.fennec_fdroid:$VERCODE" -v
+          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "org.mozilla.fennec_fdroid:$VERCODE" -v --on-server
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

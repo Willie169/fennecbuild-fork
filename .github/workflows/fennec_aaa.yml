@@ -8,31 +8,42 @@ jobs:
       - name: Build app
         run: |
           export PACKAGE_NAME='fennec_aaa'
-          export ANDROID_HOME="${HOME}/Android/Sdk"
-          export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-          cd ~
           sudo apt update
-          sudo apt install pipx python3 -y
+          sudo apt install curl git wget unzip yq pipx -y
+          export ANDROID_HOME="${HOME}/Android/Sdk"
+          export GRADLE_URL="$(curl -fsSL https://raw.githubusercontent.com/mozilla/application-services/refs/heads/main/gradle/wrapper/gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export GRADLE_FILE="$(echo $GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export GRADLE_VERSION="$(echo $GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          export PATH="/opt/gradle/gradle-${GRADLE_VERSION}/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+          cd ~
+          wget "$GRADLE_URL"
+          unzip "$GRADLE_FILE"
+          sudo mkdir -p /opt/gradle
+          sudo mv "gradle-$GRADLE_VERSION" /opt/gradle/
           pipx install fdroidserver
+          git config --global user.email you@example.com
+          git config --global user.name your_name
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml
           touch config.yml
+          git add config.yml
           cd metadata
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
-          export COMMIT=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*commit:' | tail -1 | sed -E 's/.*commit:[[:space:]]*([^[:space:]]+).*/\1/')
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
-          sudo bash <<< "$SUDO"
+          export COMMIT=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*commit:' | tail -1 | sed -E 's/.*commit:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - sed -i '"'"'\/ac_add_options --with-gradle=\\\$\\\(command -v gradle\\\)\/ac_add_options --with-gradle=\\\/opt\\\/gradle\\\/gradle-'"${GRADLE_VERSION}"'\\\/bin\\\/gradle\/'"'"'\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
-          git config --global user.email you@example.com
-          git config --global user.name your_name
-          git add .
-          git commit -m override_package_name
+          git rm org.mozilla.fennec_fdroid.yml
+          git rm org.mozilla.fennec_fdroid
+          git add "org.mozilla.$PACKAGE_NAME.yml"
+          git add "org.mozilla.$PACKAGE_NAME"
+          git commit -m commit_message
           cd ~
+          sudo bash <<< "$SUDO"
           wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
           export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }
           count >= 2 {

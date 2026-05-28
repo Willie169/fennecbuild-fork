@@ -1,4 +1,4 @@
-name: fdroid
+name: fennec_fdroid
 on:
   workflow_dispatch:
 

@@ -1,4 +1,4 @@
-name: fdroid
+name: fennec_aaa
 on:
   workflow_dispatch:
 
@@ -12,24 +12,6 @@ jobs:
           sudo add-apt-repository ppa:fdroid/fdroidserver -y
           sudo apt update
           sudo apt install fdroidserver git python-is-python3 python3-venv unzip wget -y
-          COMMON_PY=$(python3 -c "import fdroidserver.common; print(fdroidserver.common.__file__)")
-          sudo python3 - "$COMMON_PY" << 'EOF'
-          import sys
-          path = sys.argv[1]
-          with open(path, 'r') as f:
-              src = f.read()
-          old = "env['SOURCE_DATE_EPOCH'] = get_source_date_epoch(get_build_dir(app))"
-          new = (
-              "_sde = get_source_date_epoch(get_build_dir(app))\n"
-              "        if _sde:\n"
-              "            env['SOURCE_DATE_EPOCH'] = _sde\n"
-              "        else:\n"
-              "            env.pop('SOURCE_DATE_EPOCH', 0)"
-          )
-          src = src.replace(old, new)
-          with open(path, 'w') as f:
-              f.write(src)
-          EOF
           sudo apt-get install -y openjdk-17-jdk-headless
           sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
           sudo apt-get install -y cmake make m4 pkg-config tcl gyp ninja-build bzip2 libffi-dev libsqlite3-dev binutils-dev clang lld libssl-dev zlib1g-dev nodejs terser rustup
@@ -42,7 +24,7 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/    prebuild: \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git grep -l "fennec_fdroid" -- \. \| xargs perl -pi -e "s\/fennec_fdroid\/\$PACKAGE_NAME\/g" \&\& git add \. \&\& git commit -m override_package_name \&\& \.\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           cd ~

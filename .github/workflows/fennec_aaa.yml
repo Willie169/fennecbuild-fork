@@ -13,8 +13,30 @@ jobs:
           export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           cd ~
           sudo apt update
-          sudo apt install pipx -y
+          sudo apt install pipx python3 -y
           pipx install fdroidserver
+          COMMON_PY=$(python3 -c "import fdroidserver.common; print(fdroidserver.common.__file__)")
+          sudo python3 - "$COMMON_PY" << 'EOF'
+          import sys, re
+          path = sys.argv[1]
+          with open(path, 'r') as f:
+              src = f.read()
+          old = "env['SOURCE_DATE_EPOCH'] = get_source_date_epoch(get_build_dir(app))"
+          new = (
+              "_sde = get_source_date_epoch(get_build_dir(app))\n"
+              "        if _sde:\n"
+              "            env['SOURCE_DATE_EPOCH'] = _sde\n"
+              "        else:\n"
+              "            env['SOURCE_DATE_EPOCH'] = '0'"
+          )
+          if old not in src:
+              print("WARNING: SOURCE_DATE_EPOCH not found in fdroidserver")
+              sys.exit(0)
+          src = src.replace(old, new)
+          with open(path, 'w') as f:
+              f.write(src)
+          print("fdroidserver SOURCE_DATE_EPOCH patched successfully")
+          EOF
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml

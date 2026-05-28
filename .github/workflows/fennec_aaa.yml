@@ -9,7 +9,12 @@ jobs:
       - name: Build app
         run: |
           export PACKAGE_NAME='fennec_aaa'
+          export ANDROID_HOME="${HOME}/Android/Sdk"
+          export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           cd ~
+          sudo apt update
+          sudo apt install pipx -y
+          pipx install fdroidserver
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml
@@ -18,7 +23,6 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export COMMIT=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*commit:' | tail -1 | sed -E 's/.*commit:[[:space:]]*([^[:space:]]+).*/\1/')
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
-          sudo apt update
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
           sudo bash <<< "$SUDO"
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
@@ -43,7 +47,7 @@ jobs:
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          docker run --rm -v $HOME/Android/Sdk:/opt/android-sdk -v $(pwd):/repo -e ANDROID_HOME:/opt/android-sdk registry.gitlab.com/fdroid/docker-executable-fdroidserver:master build "org.mozilla.$PACKAGE_NAME:$VERCODE" -v
+          fdroid build "org.mozilla.$PACKAGE_NAME:$VERCODE" -v
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

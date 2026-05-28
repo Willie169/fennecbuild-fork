@@ -15,28 +15,6 @@ jobs:
           sudo apt update
           sudo apt install pipx python3 -y
           pipx install fdroidserver
-          COMMON_PY=$(python3 -c "import fdroidserver.common; print(fdroidserver.common.__file__)")
-          sudo python3 - "$COMMON_PY" << 'EOF'
-          import sys, re
-          path = sys.argv[1]
-          with open(path, 'r') as f:
-              src = f.read()
-          old = "env['SOURCE_DATE_EPOCH'] = get_source_date_epoch(get_build_dir(app))"
-          new = (
-              "_sde = get_source_date_epoch(get_build_dir(app))\n"
-              "        if _sde:\n"
-              "            env['SOURCE_DATE_EPOCH'] = _sde\n"
-              "        else:\n"
-              "            env['SOURCE_DATE_EPOCH'] = '0'"
-          )
-          if old not in src:
-              print("WARNING: SOURCE_DATE_EPOCH not found in fdroidserver")
-              sys.exit(0)
-          src = src.replace(old, new)
-          with open(path, 'w') as f:
-              f.write(src)
-          print("fdroidserver SOURCE_DATE_EPOCH patched successfully")
-          EOF
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml
@@ -48,9 +26,13 @@ jobs:
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
           sudo bash <<< "$SUDO"
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild: git config --global user.email you@example.com \&\& git config --global user.name your_name \&\& git reset --hard '"$COMMIT"' \&\& (git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g") \&\& git add . \&\& git commit --amend -m override_package_name \&\& .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+        sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
+          git config --global user.email you@example.com
+          git config --global user.name your_name
+          git add .
+          git commit -m override_package_name
           cd ~
           wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
           export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }

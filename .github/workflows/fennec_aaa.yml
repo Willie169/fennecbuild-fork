@@ -9,7 +9,12 @@ jobs:
         run: |
           export PACKAGE_NAME='fennec_aaa'
           sudo apt update
-          sudo apt install curl git wget unzip yq pipx -y
+          sudo apt purge yq -y
+          sudo apt install curl git wget unzip pipx -y
+          touch /.dockerenv
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+          brew install yq
           export ANDROID_HOME="${HOME}/Android/Sdk"
           export GRADLE_URL="$(curl -fsSL https://raw.githubusercontent.com/mozilla/application-services/refs/heads/main/gradle/wrapper/gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
           export GRADLE_FILE="$(echo $GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"

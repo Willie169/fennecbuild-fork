@@ -8,8 +8,6 @@ jobs:
     steps:
       - name: Build app
         run: |
-          sudo apt update
-          sudo apt install git unzip wget -y
           cd ~
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata

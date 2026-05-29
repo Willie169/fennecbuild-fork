@@ -11,6 +11,8 @@ jobs:
           cd ~
           export ANDROID_HOME="${HOME}/Android/Sdk"
           export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+          sudo mkdir -p /opt/gradle
+          mkdir -p ${HOME}/.local/bin
           sudo apt update
           sudo apt purge yq -y
           sudo apt install curl git perl pipx unzip wget -y
@@ -28,8 +30,75 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
+          export MOZFENNEC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozFennec | sed 's/- MozFennec@//')"
+          export MOZAPPSERVICES_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozAppServices | sed 's/- MozAppServices@//')"
+          export MOZGLEAN_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGlean | sed 's/- MozGlean@//')"
+          export MOZGLEANAS_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGleanAS | sed 's/- MozGleanAS@//')"
+          export UNIFIEDPUSHAC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep UnifiedPushAC | sed 's/- UnifiedPushAC@//')"
+          export GMSCORE_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep gmscore | sed 's/- gmscore@//')"
+          cd ~
+          git clone https://github.com/mozilla-firefox/firefox
+          cd firefox
+          git checkout "$MOZFENNEC_VERSION"
+          cd gradle/wrapper
+          export MOZFENNEC_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export MOZFENNEC_GRADLE_FILE="$(echo $MOZFENNEC_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export MOZFENNEC_GRADLE_VERSION="$(echo $MOZFENNEC_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$MOZFENNEC_GRADLE_FILE" ] && wget "$MOZFENNEC_GRADLE_URL" && unzip "$MOZFENNEC_GRADLE_FILE"
+          cd ~
+          git clone https://github.com/mozilla/application-services.git
+          cd application-services
+          git checkout "$MOZAPPSERVICES_VERSION"
+          cd gradle/wrapper
+          export MOZAPPSERVICES_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export MOZAPPSERVICES_GRADLE_FILE="$(echo $MOZAPPSERVICES_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export MOZAPPSERVICES_GRADLE_VERSION="$(echo $MOZAPPSERVICES_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$MOZAPPSERVICES_GRADLE_FILE" ] && wget "$MOZAPPSERVICES_GRADLE_URL" && unzip "$MOZAPPSERVICES_GRADLE_FILE"
+          cd ~
+          git clone https://github.com/mozilla/glean.git
+          cd glean
+          git checkout "$MOZGLEAN_VERSION"
+          cd gradle/wrapper
+          export MOZGLEAN_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export MOZGLEAN_GRADLE_FILE="$(echo $MOZGLEAN_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export MOZGLEAN_GRADLE_VERSION="$(echo $MOZGLEAN_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$MOZGLEAN_GRADLE_FILE" ] && wget "$MOZGLEAN_GRADLE_URL" && unzip "$MOZGLEAN_GRADLE_FILE"
+          cd glean
+          git checkout "$MOZGLEANAS_VERSION"
+          cd gradle/wrapper
+          export MOZGLEANAS_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export MOZGLEANAS_GRADLE_FILE="$(echo $MOZGLEANAS_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export MOZGLEANAS_GRADLE_VERSION="$(echo $MOZGLEANAS_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$MOZGLEANAS_GRADLE_FILE" ] && wget "$MOZGLEANAS_GRADLE_URL" && unzip "$MOZGLEANAS_GRADLE_FILE"
+          cd ~
+          git clone https://gitlab.com/ironfox-oss/unifiedpush-ac.git
+          cd unifiedpush-ac
+          git checkout "$UNIFIEDPUSHAC_VERSION"
+          cd gradle/wrapper
+          export UNIFIEDPUSHAC_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export UNIFIEDPUSHAC_GRADLE_FILE="$(echo $UNIFIEDPUSHAC_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export UNIFIEDPUSHAC_GRADLE_VERSION="$(echo $UNIFIEDPUSHAC_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$UNIFIEDPUSHAC_GRADLE_FILE" ] && wget "$UNIFIEDPUSHAC_GRADLE_URL" && unzip "$UNIFIEDPUSHAC_GRADLE_FILE"
+          cd ~
+          git clone https://github.com/microg/GmsCore.git
+          cd GmsCore
+          git checkout "$GMSCORE_VERSION"
+          cd gradle/wrapper
+          export GMSCORE_GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export GMSCORE_GRADLE_FILE="$(echo $GMSCORE_GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export GMSCORE_GRADLE_VERSION="$(echo $GMSCORE_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          [ ! -f "$GMSCORE_GRADLE_FILE" ] && wget "$GMSCORE_GRADLE_URL" && unzip "$GMSCORE_GRADLE_FILE"
+          sudo rm gradle-*.zip
+          sudo mv gradle-* /opt/gradle/
+          cd ~/fdroiddata/metadata
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/ +# Make gradlew scripts call our Gradle wrapper\\n    find \\\.\\\/\\\* -name gradlew -type f \\\| while read -r gradlew; do\\n        echo -e '"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"'#!\\\/bin\\\/sh\\\\ngradle "\\\$@"'"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"' > "\\\$gradlew"\\n        chmod 755 "\\\$gradlew"\\n    done\\n\/\/s'"'"'"'"'"'"'"'"' prebuild.sh'"'"' \| tee patch.sh\n      - chmod +x patch.sh\n      - .\/patch.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/ +# Make gradlew scripts call our Gradle wrapper\\n    find \\\.\\\/\\\* -name gradlew -type f \\\| while read -r gradlew; do\\n        echo -e '"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"'#!\\\/bin\\\/sh\\\\ngradle "\\\$@"'"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"' > "\\\$gradlew"\\n        chmod 755 "\\\$gradlew"\\n    done\\n\/\/s'"'"'"'"'"'"'"'"' prebuild.sh'"'"' \| tee patch.sh\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/pushd "\\\$gmscore"\\ngradle\/pushd "\\\$gmscore"\\n\\\/opt\\\/gradle\\\/gradle-'"$GMSCORE_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\ngradle\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEAN_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean_as"\\ngradle\/pushd "\\\$glean_as"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEANAS_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/\\.\\\/libs\\\/verify-android-environment\\.sh\\ngradle\/.\\\/libs\\\/verify-android-environment.sh\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$unifiedpush_ac"\\ngradle\/pushd "\\\$unifiedpush_ac"\\n\\\/opt\\\/gradle\\\/gradle-'"$UNIFIEDPUSHAC_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$fenix"\\ngradle\/pushd "\\\$fenix"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s'"'"'"'"'"'"'"'"' build.sh'"'"' | tee -a patch.sh\n      - chmod +x patch.sh\n      - .\/patch.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           git rm org.mozilla.fennec_fdroid.yml
@@ -57,7 +126,7 @@ jobs:
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          fdroid build "org.mozilla.$PACKAGE_NAME:$VERCODE" -v
+          fdroid build "org.mozilla.fennec_fdroid:$VERCODE" -v
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

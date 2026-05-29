@@ -7,23 +7,13 @@ jobs:
     steps:
       - name: Build app
         run: |
+          cd ~
           sudo apt update
           sudo apt purge yq -y
           sudo apt install curl git wget unzip pipx -y
           NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
           brew install yq
-          export ANDROID_HOME="${HOME}/Android/Sdk"
-          export GRADLE_URL="$(curl -fsSL https://raw.githubusercontent.com/mozilla/application-services/refs/heads/main/gradle/wrapper/gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
-          export GRADLE_FILE="$(echo $GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
-          export GRADLE_VERSION="$(echo $GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
-          export PATH="/opt/gradle/gradle-${GRADLE_VERSION}/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-          cd ~
-          wget "$GRADLE_URL"
-          unzip "$GRADLE_FILE"
-          sudo mkdir -p /opt/gradle
-          sudo mv "gradle-$GRADLE_VERSION" /opt/gradle/
-          pipx install fdroidserver
           git config --global user.email you@example.com
           git config --global user.name your_name
           git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
@@ -35,11 +25,29 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
+          export GMSCORE_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep gmscore | sed 's/- gmscore@//')"
+          cd ~
+          git clone https://github.com/microg/GmsCore.git
+          cd GmsCore
+          git checkout "$GMSCORE_VERSION"
+          cd gradle/wrapper
+          export GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
+          export GRADLE_FILE="$(echo $GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
+          export GRADLE_VERSION="$(echo $GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
+          cd ~
+          wget "$GRADLE_URL"
+          unzip "$GRADLE_FILE"
+          sudo mkdir -p /opt/gradle
+          sudo mv "gradle-$GRADLE_VERSION" /opt/gradle/
+          export ANDROID_HOME="${HOME}/Android/Sdk"
+          export PATH="/opt/gradle/gradle-${GRADLE_VERSION}/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+          cd ~/fdroiddata/metadata
           sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - sed -i '"'"'\/ac_add_options --with-gradle=\\\$\\\(command -v gradle\\\)\/ac_add_options --with-gradle=\\\/opt\\\/gradle\\\/gradle-'"${GRADLE_VERSION}"'\\\/bin\\\/gradle\/'"'"' prebuild.sh\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           git add org.mozilla.fennec_fdroid.yml
           git commit -m commit_message
           cd ~
           sudo bash <<< "$SUDO"
+          pipx install fdroidserver
           wget --tries=100 --retry-connrefused --waitretry=5 -O studio.html https://developer.android.com/studio
           export CMDLINETOOLS="$(awk '/<table class="download">/ { count++ }
           count >= 2 {

@@ -9,9 +9,11 @@ jobs:
         run: |
           export PACKAGE_NAME='fennec_aaa'
           cd ~
+          export ANDROID_HOME="${HOME}/Android/Sdk"
+          export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           sudo apt update
           sudo apt purge yq -y
-          sudo apt install curl git wget unzip pipx -y
+          sudo apt install curl git perl pipx unzip wget -y
           NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
           brew install yq
@@ -26,26 +28,8 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
-          export GMSCORE_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep gmscore | sed 's/- gmscore@//')"
-          cd ~
-          git clone https://github.com/microg/GmsCore.git
-          cd GmsCore
-          git checkout "$GMSCORE_VERSION"
-          cd gradle/wrapper
-          export GRADLE_URL="$(cat gradle-wrapper.properties | grep 'distributionUrl' | sed 's/distributionUrl=https\\/https/')"
-          export GRADLE_FILE="$(echo $GRADLE_URL | sed 's/https:\/\/services\.gradle\.org\/distributions\///')"
-          export GRADLE_VERSION="$(echo $GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
-          cd ~
-          wget "$GRADLE_URL"
-          unzip "$GRADLE_FILE"
-          sudo mkdir -p /opt/gradle
-          sudo mv "gradle-$GRADLE_VERSION" /opt/gradle/
-          export ANDROID_HOME="${HOME}/Android/Sdk"
-          export PATH="/opt/gradle/gradle-${GRADLE_VERSION}/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-          cd ~/fdroiddata/metadata
-          export COMMIT=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*commit:' | tail -1 | sed -E 's/.*commit:[[:space:]]*([^[:space:]]+).*/\1/')
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - sed -i '"'"'\/ac_add_options --with-gradle=\\\$\\\(command -v gradle\\\)\/ac_add_options --with-gradle=\\\/opt\\\/gradle\\\/gradle-'"${GRADLE_VERSION}"'\\\/bin\\\/gradle\/'"'"' prebuild.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - perl -0777 -i -pe '"'"'s\/    # Make gradlew scripts call our Gradle wrapper\\n    find \\\.\\\/\\\* -name gradlew -type f \\\| while read -r gradlew; do\\n        echo -e '"'"'\\'"'"''"'"'#!\\\/bin\\\/sh\\\\ngradle "\\\$@"'"'"'\\'"'"''"'"' > "\\\$gradlew"\\n        chmod 755 "\\\$gradlew"\\n    done\\n\/\/s'"'"' prebuild.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           git rm org.mozilla.fennec_fdroid.yml

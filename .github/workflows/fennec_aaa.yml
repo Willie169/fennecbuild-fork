@@ -30,12 +30,12 @@ jobs:
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
-          export MOZFENNEC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozFennec | sed 's/- MozFennec@//')"
-          export MOZAPPSERVICES_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozAppServices | sed 's/- MozAppServices@//')"
-          export MOZGLEAN_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGlean | sed 's/- MozGlean@//')"
-          export MOZGLEANAS_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGleanAS | sed 's/- MozGleanAS@//')"
-          export UNIFIEDPUSHAC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep UnifiedPushAC | sed 's/- UnifiedPushAC@//')"
-          export GMSCORE_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep gmscore | sed 's/- gmscore@//')"
+          export MOZFENNEC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozFennec@ | sed 's/- MozFennec@//')"
+          export MOZAPPSERVICES_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozAppServices@ | sed 's/- MozAppServices@//')"
+          export MOZGLEAN_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGlean@ | sed 's/- MozGlean@//')"
+          export MOZGLEANAS_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozGleanAS@ | sed 's/- MozGleanAS@//')"
+          export UNIFIEDPUSHAC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep UnifiedPushAC@ | sed 's/- UnifiedPushAC@//')"
+          export GMSCORE_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep gmscore@ | sed 's/- gmscore@//')"
           cd ~
           git clone https://github.com/mozilla-firefox/firefox
           cd firefox

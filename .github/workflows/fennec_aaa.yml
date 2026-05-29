@@ -126,7 +126,7 @@ jobs:
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata
-          fdroid build "org.mozilla.fennec_fdroid:$VERCODE" -v
+          fdroid build "org.mozilla.$PACKAGE_NAME:$VERCODE" -v
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

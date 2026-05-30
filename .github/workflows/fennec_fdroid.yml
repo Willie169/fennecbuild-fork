@@ -93,7 +93,8 @@ jobs:
           export GMSCORE_GRADLE_VERSION="$(echo $GMSCORE_GRADLE_FILE | sed 's/gradle-//; s/-bin\.zip//')"
           cd ~
           [ ! -f "$GMSCORE_GRADLE_FILE" ] && wget "$GMSCORE_GRADLE_URL" && unzip "$GMSCORE_GRADLE_FILE"
-          sudo rm gradle-*.zip
+          rm gradle-*.zip
+          rm -rf firefox application-services glean unifiedpush-ac GmsCore
           sudo mv gradle-* /opt/gradle/
           cd ~/fdroiddata/metadata
           sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/ +# Make gradlew scripts call our Gradle wrapper\\n    find \\\.\\\/\\\* -name gradlew -type f \\\| while read -r gradlew; do\\n        echo -e '"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"'#!\\\/bin\\\/sh\\\\ngradle "\\\$@"'"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"' > "\\\$gradlew"\\n        chmod 755 "\\\$gradlew"\\n    done\\n\/\/s'"'"'"'"'"'"'"'"' prebuild.sh'"'"' \| tee patch.sh\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/pushd "\\\$gmscore"\\ngradle\/pushd "\\\$gmscore"\\n\\\/opt\\\/gradle\\\/gradle-'"$GMSCORE_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\ngradle\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEAN_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean_as"\\ngradle\/pushd "\\\$glean_as"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEANAS_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/\\.\\\/libs\\\/verify-android-environment\\.sh\\ngradle\/.\\\/libs\\\/verify-android-environment.sh\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$unifiedpush_ac"\\ngradle\/pushd "\\\$unifiedpush_ac"\\n\\\/opt\\\/gradle\\\/gradle-'"$UNIFIEDPUSHAC_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$fenix"\\ngradle\/pushd "\\\$fenix"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s'"'"'"'"'"'"'"'"' build.sh'"'"' | tee -a patch.sh\n      - chmod +x patch.sh\n      - .\/patch.sh\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
@@ -115,7 +116,7 @@ jobs:
           unzip "$CMDLINETOOLS"
           mkdir -p ~/Android/Sdk/cmdline-tools/latest
           mv cmdline-tools/* ~/Android/Sdk/cmdline-tools/latest
-          rm -r cmdline-tools
+          rm -r cmdline-tools*
           cd ~/Android/Sdk/cmdline-tools/latest/bin
           echo y | ./sdkmanager "platform-tools" "ndk;$NDK"
           cd ~/fdroiddata

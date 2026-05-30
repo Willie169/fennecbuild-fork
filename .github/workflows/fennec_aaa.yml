@@ -10,7 +10,7 @@ jobs:
           export PACKAGE_NAME='fennec_aaa'
           cd ~
           export CARGO_BUILD_JOBS=2
-          export RUSTFLAGS="-C link-arg=-Wl,--threads=2,codegen-units=1"
+          export RUSTFLAGS="-C codegen-units=1"
           export ANDROID_HOME="${HOME}/Android/Sdk"
           export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           sudo mkdir -p /opt/gradle

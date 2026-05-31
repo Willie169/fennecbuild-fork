@@ -13,7 +13,7 @@ jobs:
           export RUSTFLAGS="-C codegen-units=1"
           export ANDROID_HOME="${HOME}/Android/Sdk"
           export PATH="/opt/gradle/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-          sudo mkdir -p /opt/gradle
+          sudo mkdir -p /opt/gradle/bin
           mkdir -p ${HOME}/.local/bin
           sudo apt update
           sudo apt purge yq -y

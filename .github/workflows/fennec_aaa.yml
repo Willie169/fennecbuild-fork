@@ -12,7 +12,7 @@ jobs:
           export CARGO_BUILD_JOBS=2
           export RUSTFLAGS="-C codegen-units=1"
           export ANDROID_HOME="${HOME}/Android/Sdk"
-          export PATH="${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+          export PATH="/opt/gradle/bin:${HOME}/.local/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           sudo mkdir -p /opt/gradle
           mkdir -p ${HOME}/.local/bin
           sudo apt update
@@ -23,13 +23,16 @@ jobs:
           brew install yq
           git config --global user.email you@example.com
           git config --global user.name your_name
-          git clone --depth 1 https://gitlab.com/fdroid/fdroiddata.git
+          git clone https://gitlab.com/fdroid/fdroiddata.git
           cd fdroiddata
           rm config.yml
           touch config.yml
           git add config.yml
           cd metadata
           export VERCODE=$(awk -F': *' '/^[[:space:]]*CurrentVersionCode:/ {print $2}' org.mozilla.fennec_fdroid.yml)
+          export COMMIT=$(git log --format='%H' -S"versionCode: $VERCODE" -- org.mozilla.fennec_fdroid.yml | head -n1)
+          export GIT_AUTHOR_DATE="$(git show -s --format=%aI "$COMMIT")"
+          export GIT_COMMITTER_DATE="$(git show -s --format=%cI "$COMMIT")"
           export NDK=$(cat org.mozilla.fennec_fdroid.yml | grep -E '[[:space:]]*ndk:' | tail -1 | sed -E 's/.*ndk:[[:space:]]*([^[:space:]]+).*/\1/')
           export SUDO="$(yq '.Builds[-1].sudo' org.mozilla.fennec_fdroid.yml | sed 's/^- //' | sed 's/^echo .* > \/etc\/apt\/sources\.list\.d\/.*$//' | sed 's/ -t bookworm//')"
           export MOZFENNEC_VERSION="$(yq '.Builds[-1].srclibs' org.mozilla.fennec_fdroid.yml | grep MozFennec@ | sed 's/- MozFennec@//')"
@@ -101,7 +104,7 @@ jobs:
           sudo mv gradle-* /opt/gradle/
           cd ~/fdroiddata/metadata
           sed -i "s/fennec_fdroid/$PACKAGE_NAME/" org.mozilla.fennec_fdroid.yml
-          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/ +# Make gradlew scripts call our Gradle wrapper\\n    find \\\.\\\/\\\* -name gradlew -type f \\\| while read -r gradlew; do\\n        echo -e '"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"'#!\\\/bin\\\/sh\\\\ngradle "\\\$@"'"'"'"'"'"'"'"'"'\\'"'"'"'"'"'"'"'"''"'"'"'"'"'"'"'"' > "\\\$gradlew"\\n        chmod 755 "\\\$gradlew"\\n    done\\n\/\/s'"'"'"'"'"'"'"'"' prebuild.sh'"'"' \| tee patch.sh\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/pushd "\\\$gmscore"\\ngradle\/pushd "\\\$gmscore"\\n\\\/opt\\\/gradle\\\/gradle-'"$GMSCORE_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\ngradle\/pushd "\\\$glean"\\nexport TARGET_CFLAGS=-DNDEBUG\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEAN_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean_as"\\ngradle\/pushd "\\\$glean_as"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZGLEANAS_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/\\.\\\/libs\\\/verify-android-environment\\.sh\\ngradle\/.\\\/libs\\\/verify-android-environment.sh\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$unifiedpush_ac"\\ngradle\/pushd "\\\$unifiedpush_ac"\\n\\\/opt\\\/gradle\\\/gradle-'"$UNIFIEDPUSHAC_GRADLE_VERSION"'\\\/bin\\\/gradle\/s; s\/pushd "\\\$fenix"\\ngradle\/pushd "\\\$fenix"\\n\\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle\/s'"'"'"'"'"'"'"'"' build.sh'"'"' | tee -a patch.sh\n      - chmod +x patch.sh\n      - .\/patch.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
+          sed -i 's/^    prebuild: \.\/prebuild\.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/    prebuild:\n      - echo '"'"'sed -Ei '"'"'"'"'"'"'"'"'s\/\^ac_add_options --with-gradle=\\\$\\\(command -v gradle\\\)\$\/ac_add_options --with-gradle="\\\/opt\\\/gradle\\\/bin\\\/gradle"\/'"'"'"'"'"'"'"'"' prebuild.sh'"'"' \| tee patch.sh\n      - echo '"'"'perl -0777 -i -pe '"'"'"'"'"'"'"'"'s\/pushd "\\\$gmscore"\/pushd "\\\$gmscore"\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$GMSCORE_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/export TARGET_CFLAGS=-DNDEBUG\/export TARGET_CFLAGS=-DNDEBUG\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZGLEAN_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/pushd "\\\$glean_as"\/pushd "\\\$glean_as"\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZGLEANAS_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/export MOZ_CHROME_MULTILOCALE\/export MOZ_CHROME_MULTILOCALE\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZFENNEC_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/pushd "\\\$android_components"\/pushd "\\\$android_components"\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZFENNEC_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/\\.\\\/libs\\\/verify-android-environment\\.sh\/.\\\/libs\\\/verify-android-environment.sh\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZAPPSERVICES_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/pushd "\\\$unifiedpush_ac"\/pushd "\\\$unifiedpush_ac"\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$UNIFIEDPUSHAC_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\/s; s\/pushd "\\\$fenix"\/pushd "\\\$fenix"\\nsudo ln -sf \\\/opt\\\/gradle\\\/gradle-'"$MOZFENNEC_GRADLE_VERSION"'\\\/bin\\\/gradle \\\/opt\\\/gradle\\\/bin\\\/gradle\\n\/s'"'"'"'"'"'"'"'"' build.sh'"'"' | tee -a patch.sh\n      - chmod +x patch.sh\n      - .\/patch.sh\n      - git grep -l "fennec_fdroid" -- . | xargs perl -pi -e "s\/fennec_fdroid\/'"$PACKAGE_NAME"'\/g"\n      - .\/prebuild.sh \$\$VERSION\$\$ \$\$VERCODE\$\$/' org.mozilla.fennec_fdroid.yml
           mv org.mozilla.fennec_fdroid.yml "org.mozilla.$PACKAGE_NAME.yml"
           mv org.mozilla.fennec_fdroid "org.mozilla.$PACKAGE_NAME"
           git rm org.mozilla.fennec_fdroid.yml

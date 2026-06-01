@@ -3,9 +3,11 @@ on:
   workflow_dispatch:
 jobs:
   build:
+    timeout-minutes: 360
     runs-on: ubuntu-latest
     steps:
       - name: Build app
+        timeout-minutes: 360
         run: |
           cd ~
           export CARGO_BUILD_JOBS=2
@@ -127,6 +129,7 @@ jobs:
           cd ~/fdroiddata
           fdroid build "org.mozilla.fennec_fdroid:$VERCODE" -v
       - name: Upload APK artifact
+        timeout-minutes: 360
         uses: actions/upload-artifact@v4
         with:
           name: fennec_apks
